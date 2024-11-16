@@ -19,10 +19,10 @@ whenever sqlerror exit sql.sqlcode rollback
 begin
 wwv_flow_imp.import_begin (
  p_version_yyyy_mm_dd=>'2023.10.31'
-,p_release=>'23.2.4'
+,p_release=>'23.2.7'
 ,p_default_workspace_id=>16477951687704506971
 ,p_default_application_id=>47589
-,p_default_id_offset=>1400710376691076
+,p_default_id_offset=>2432447583912325
 ,p_default_owner=>'OGOBRECHT'
 );
 end;
@@ -33,6 +33,7 @@ prompt APPLICATION 47589 - Data Model Explorer
 -- Application Export:
 --   Application:     47589
 --   Name:            Data Model Explorer
+--   Date and Time:   17:30 Saturday November 16, 2024
 --   Exported By:     OGOBRECH
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -73,8 +74,9 @@ prompt APPLICATION 47589 - Data Model Explorer
 --       E-Mail:
 --     Supporting Objects:  Included
 --       Install scripts:          2
---   Version:         23.2.4
---   Instance ID:     709459934629907
+--       Validations:              1
+--   Version:         23.2.7
+--   Instance ID:     709422217828148
 --
 
 prompt --application/delete_application
@@ -110,13 +112,13 @@ wwv_imp_workspace.create_flow(
 ,p_public_user=>'APEX_PUBLIC_USER'
 ,p_proxy_server=>nvl(wwv_flow_application_install.get_proxy,'')
 ,p_no_proxy_domains=>nvl(wwv_flow_application_install.get_no_proxy_domains,'')
-,p_flow_version=>'v0.9'
+,p_flow_version=>'v0.9.1'
 ,p_flow_status=>'AVAILABLE_W_EDIT_LINK'
 ,p_flow_unavailable_text=>'This application is currently unavailable at this time.'
 ,p_exact_substitutions_only=>'Y'
 ,p_browser_cache=>'N'
 ,p_browser_frame=>'D'
-,p_runtime_api_usage=>'T:W'
+,p_runtime_api_usage=>'T'
 ,p_pass_ecid=>'N'
 ,p_rejoin_existing_sessions=>'N'
 ,p_csv_encoding=>'Y'
@@ -124,7 +126,7 @@ wwv_imp_workspace.create_flow(
 ,p_substitution_string_01=>'APP_NAME'
 ,p_substitution_value_01=>'Data Model Explorer'
 ,p_last_updated_by=>'OGOBRECH'
-,p_last_upd_yyyymmddhh24miss=>'20240405154856'
+,p_last_upd_yyyymmddhh24miss=>'20241116172954'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>1011
 ,p_print_server_type=>'INSTANCE'
@@ -136,7 +138,7 @@ end;
 prompt --application/user_interfaces
 begin
 wwv_flow_imp_shared.create_user_interface(
- p_id=>wwv_flow_imp.id(1400710376690976)
+ p_id=>wwv_flow_imp.id(2432447583912225)
 ,p_theme_id=>42
 ,p_home_url=>'f?p=&APP_ID.:1:&SESSION.'
 ,p_login_url=>'f?p=&APP_ID.:LOGIN:&APP_SESSION.::&DEBUG.:::'
@@ -42773,6 +42775,8 @@ wwv_flow_imp_shared.create_install(
 '',
 'prompt - FINISHED',
 ''))
+,p_required_free_kb=>100
+,p_required_sys_privs=>'CREATE MATERIALIZED VIEW:CREATE PROCEDURE:CREATE TABLE:CREATE TRIGGER:CREATE VIEW'
 );
 end;
 /
@@ -42801,7 +42805,7 @@ wwv_flow_imp_shared.create_install_script(
 'declare',
 '    l_apex_installed     varchar2(5) := ''FALSE''; -- Do not change (is set dynamically).',
 '    l_utils_public       varchar2(5) := ''FALSE''; -- Make utilities public available (for testing or other usages).',
-'    l_native_compilation boolean     := false;   -- Set this to true on your own risk (in the Oracle cloud you will get likely an "insufficient privileges" error)',
+'    l_native_compilation boolean     := false;   -- Set this to true at your own risk (in the Oracle cloud you will get likely an "insufficient privileges" error)',
 '    l_count pls_integer;',
 'begin',
 '',
@@ -42829,7 +42833,7 @@ wwv_flow_imp_shared.create_install_script(
 'create or replace package model authid current_user is',
 '',
 'c_name    constant varchar2 (30 byte) := ''Oracle Data Model Utilities'';',
-'c_version constant varchar2 (10 byte) := ''0.8.0'';',
+'c_version constant varchar2 (10 byte) := ''0.9.1'';',
 'c_url     constant varchar2 (34 byte) := ''https://github.com/ogobrecht/model'';',
 'c_license constant varchar2 ( 3 byte) := ''MIT'';',
 'c_author  constant varchar2 (15 byte) := ''Ottmar Gobrecht'';',
@@ -42847,22 +42851,40 @@ wwv_flow_imp_shared.create_install_script(
 '**/',
 '',
 'type t_vc2_tab is table of varchar2(128);',
-'g_base_mviews t_vc2_tab := t_vc2_tab (',
-'    ''ALL_TABLES'',',
-'    ''ALL_TAB_COLUMNS'',',
-'    ''ALL_CONSTRAINTS'',',
-'    ''ALL_CONS_COLUMNS'',',
-'    ''ALL_INDEXES'',',
-'    ''ALL_IND_COLUMNS'',',
-'    ''ALL_OBJECTS'',',
-'    ''ALL_DEPENDENCIES'',',
-'    ''ALL_VIEWS'',',
-'    ''ALL_TRIGGERS'',',
-'    ''ALL_SYNONYMS'',',
-'    ''USER_TAB_PRIVS'',',
-'    ''ALL_RELATIONS'' );',
+'',
+'--------------------------------------------------------------------------------',
+'',
+'function base_mviews return t_vc2_tab;',
+'/**',
+'',
+'Returns the base materialized views as defined in the model package.',
+'',
+'EXAMPLE',
+'',
+'```sql',
+'declare',
+'    l_base_mviews model.t_vc2_tab := model.base_mviews;',
+'begin',
+'    for i in 1..l_base_mviews.count loop',
+'        dbms_output.put_line(l_base_mviews(i));',
+'    end loop;',
+'end;',
+'```',
+'**/',
+'',
+'--------------------------------------------------------------------------------',
 '',
 'function list_base_mviews return t_vc2_tab pipelined;',
+'/**',
+'',
+'List base materialized views as defined in the model package.',
+'',
+'EXAMPLE',
+'',
+'```sql',
+'select * from table (model.list_base_mviews);',
+'```',
+'**/',
 '',
 '--------------------------------------------------------------------------------',
 '',
@@ -43188,6 +43210,29 @@ wwv_flow_imp_shared.create_install_script(
 'c_lf            constant char(1)           := chr(10);',
 'c_error_code    constant pls_integer       := -20777 ;',
 'c_assert_prefix constant varchar2(30)      := ''Assertion failed: '';',
+'',
+'g_base_mviews t_vc2_tab := t_vc2_tab (',
+'    ''ALL_TABLES'',',
+'    ''ALL_TAB_COLUMNS'',',
+'    ''ALL_CONSTRAINTS'',',
+'    ''ALL_CONS_COLUMNS'',',
+'    ''ALL_INDEXES'',',
+'    ''ALL_IND_COLUMNS'',',
+'    ''ALL_OBJECTS'',',
+'    ''ALL_DEPENDENCIES'',',
+'    ''ALL_VIEWS'',',
+'    ''ALL_TRIGGERS'',',
+'    ''ALL_SYNONYMS'',',
+'    ''USER_TAB_PRIVS'',',
+'    ''ALL_RELATIONS'' );',
+'',
+'--------------------------------------------------------------------------------',
+'',
+'function base_mviews return t_vc2_tab',
+'is',
+'begin',
+'    return g_base_mviews;',
+'end base_mviews;',
 '',
 '--------------------------------------------------------------------------------',
 '',
@@ -43571,7 +43616,15 @@ wwv_flow_imp_shared.create_install_script(
 '                            ''    on  t.table_name  = i.table_name''  || c_lf ||',
 '                            ''    and t.column_name = i.column_name''',
 '                        when ''ALL_TAB_COLUMNS'' then',
-'                            ''sys.all_tab_identity_cols i''           || c_lf ||',
+'       '))
+);
+end;
+/
+begin
+wwv_flow_imp_shared.append_to_install_script(
+ p_id=>wwv_flow_imp.id(29239491521954627)
+,p_script_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'                     ''sys.all_tab_identity_cols i''           || c_lf ||',
 '                            ''    on  t.owner       = i.owner''       || c_lf ||',
 '                            ''    and t.table_name  = i.table_name''  || c_lf ||',
 '                            ''    and t.column_name = i.column_name''',
@@ -43591,15 +43644,7 @@ wwv_flow_imp_shared.create_install_script(
 '                        where owner      = p_owner',
 '                          and table_name = p_table_name )',
 '            loop',
-'                execute immediate ''comment on materi'))
-);
-end;
-/
-begin
-wwv_flow_imp_shared.append_to_install_script(
- p_id=>wwv_flow_imp.id(29239491521954627)
-,p_script_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'alized view '' || l_mview_name ||',
+'                execute immediate ''comment on materialized view '' || l_mview_name ||',
 '                                  '' is '''''' || replace(i.comments,'''''''', '''''''''''') || '''''''';',
 '            end loop;',
 '',
@@ -44062,29 +44107,29 @@ wwv_flow_imp_shared.append_to_install_script(
 '-- check for errors in package model',
 'declare',
 '  l_count pls_integer;',
+'  l_name  varchar2(30) := ''MODEL'';',
 'begin',
 '  select count(*)',
 '    into l_count',
 '    from user_errors',
-'   where name = ''MODEL'';',
+'   where name = l_name;',
 '  if l_count > 0 then',
-'    dbms_output.put_line(''- Package MODEL has errors :-('');',
+'    dbms_output.put_line(''- Package '' || l_name || '' has errors :-('');',
+'    for i in (',
+'        select name || case when type like ''%BODY'' then '' body'' end || '', '' ||',
+'               ''line '' || line || '', '' ||',
+'               ''column '' || position || '', '' ||',
+'               attribute  || '': '' ||',
+'               text as message',
+'          from user_errors',
+'         where name = l_name',
+'         order by name, line, position )',
+'    loop',
+'        dbms_output.put_line(''- '' || i.message);',
+'    end loop;',
 '  end if;',
 'end;',
 '/',
-'',
-'column "Name"      format a15',
-'column "Line,Col"  format a10',
-'column "Type"      format a10',
-'column "Message"   format a80',
-'',
-'select name || case when type like ''%BODY'' then '' body'' end as "Name",',
-'       line || '','' || position as "Line,Col",',
-'       attribute               as "Type",',
-'       text                    as "Message"',
-'  from user_errors',
-' where name = ''MODEL''',
-' order by name, line, position;',
 '',
 '',
 'declare',
@@ -44098,7 +44143,7 @@ wwv_flow_imp_shared.append_to_install_script(
 '  if l_count = 0 then',
 '    -- without execute immediate this script will raise an error when the package model is not valid',
 '    execute immediate ''select model.version from dual'' into l_version;',
-'    dbms_output.put_line(''- FINISHED (v'' || l_version || '')'');',
+'    dbms_output.put_line(''- Version: '' || l_version);',
 '  end if;',
 'end;',
 '/',
@@ -44129,9 +44174,13 @@ wwv_flow_imp_shared.create_install_script(
 'set trimspool on',
 'whenever sqlerror exit sql.sqlcode rollback',
 '',
-'prompt - Create or refresh needed mviews',
+'prompt - Create or refresh needed mviews (this can take a minute or so...)',
 'begin',
-'    model.create_or_refresh_base_mviews;',
+'    if model.all_base_mviews_exist then',
+'        dbms_output.put_line(''- Mviews already existing - nothing to do'');',
+'    else',
+'        model.create_or_refresh_base_mviews;',
+'    end if;',
 'end;',
 '/',
 '',
@@ -44139,7 +44188,7 @@ wwv_flow_imp_shared.create_install_script(
 'declare',
 '    l_apex_installed     varchar2(5) := ''FALSE''; -- Do not change (is set dynamically).',
 '    l_utils_public       varchar2(5) := ''FALSE''; -- Make utilities public available (for testing or other usages).',
-'    l_native_compilation boolean     := false;   -- Set this to true on your own risk (in the Oracle cloud you will get likely an "insufficient privileges" error)',
+'    l_native_compilation boolean     := false;   -- Set this to true at your own risk (in the Oracle cloud you will get likely an "insufficient privileges" error)',
 '    l_count pls_integer;',
 'begin',
 '',
@@ -44935,10 +44984,7 @@ wwv_flow_imp_shared.create_install_script(
 '            l_unsupported_data_types := ''Skipped because of unsupported data types: '';',
 '            l_index := g_skipped_unsupported.first;',
 '            while l_index is not null loop',
-'                l_unsupported_data_types := l_unsupported_data_types ||',
-'                    to_char(g_skipped_unsupported(l_index)) ||',
-'                    '' column'' || case when g_skipped_unsupported(l_index) > 1 then ''s'' end ||',
-'     '))
+'                l_unsupported_data_types := l_unsupported_d'))
 );
 end;
 /
@@ -44946,7 +44992,10 @@ begin
 wwv_flow_imp_shared.append_to_install_script(
  p_id=>wwv_flow_imp.id(29239532822960010)
 ,p_script_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'               '' of data type '' || l_index || '', '';',
+'ata_types ||',
+'                    to_char(g_skipped_unsupported(l_index)) ||',
+'                    '' column'' || case when g_skipped_unsupported(l_index) > 1 then ''s'' end ||',
+'                    '' of data type '' || l_index || '', '';',
 '                l_index := g_skipped_unsupported.next(l_index);',
 '            end loop;',
 '            l_unsupported_data_types := rtrim(l_unsupported_data_types, '', '') || ''.'';',
@@ -45667,11 +45716,7 @@ wwv_flow_imp_shared.append_to_install_script(
 '                   ''last_updated_on''      value null );',
 'end get_bg_execution_status;',
 '',
-'--------------------------------------------------------------------------------',
-'',
-'function view_missing_fk_indexes (',
-'    p_owner varchar2 default sys_context(''USERENV'', ''CURRENT_USER'') )',
-'return t_in'))
+'------------------------'))
 );
 null;
 end;
@@ -45680,7 +45725,11 @@ begin
 wwv_flow_imp_shared.append_to_install_script(
  p_id=>wwv_flow_imp.id(29239532822960010)
 ,p_script_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'dexes_tab pipelined',
+'--------------------------------------------------------',
+'',
+'function view_missing_fk_indexes (',
+'    p_owner varchar2 default sys_context(''USERENV'', ''CURRENT_USER'') )',
+'return t_indexes_tab pipelined',
 'is',
 'begin',
 '    for i in (',
@@ -45735,6 +45784,7 @@ wwv_flow_imp_shared.append_to_install_script(
 'is',
 '    l_totalwork       pls_integer;',
 '    l_missing_indexes t_indexes_tab;',
+'    l_base_mviews     model.t_vc2_tab := model.base_mviews;',
 'begin',
 '    select * bulk collect into l_missing_indexes',
 '      from table (model_joel.view_missing_fk_indexes);',
@@ -45749,7 +45799,7 @@ wwv_flow_imp_shared.append_to_install_script(
 '',
 '    else',
 '',
-'        l_totalwork := l_missing_indexes.count + model.g_base_mviews.count;',
+'        l_totalwork := l_missing_indexes.count + l_base_mviews.count;',
 '        apex_background_process.set_progress(',
 '            p_totalwork => l_totalwork,',
 '            p_sofar     => 0 );',
@@ -45778,18 +45828,19 @@ wwv_flow_imp_shared.append_to_install_script(
 '    p_totalwork integer default null,',
 '    p_sofar     integer default null )',
 'is',
-'    l_totalwork pls_integer := coalesce(p_totalwork, model.g_base_mviews.count);',
-'    l_sofar     pls_integer := coalesce(p_sofar    , 0);',
+'    l_base_mviews model.t_vc2_tab := model.base_mviews;',
+'    l_totalwork   pls_integer := coalesce(p_totalwork, l_base_mviews.count);',
+'    l_sofar       pls_integer := coalesce(p_sofar    , 0);',
 'begin',
 '    apex_background_process.set_progress(',
 '        p_totalwork => l_totalwork,',
 '        p_sofar     => l_sofar );',
 '',
-'    for i in 1..model.g_base_mviews.count loop',
+'    for i in 1..l_base_mviews.count loop',
 '        apex_background_process.set_status(',
-'            p_message => ''Refreshing '' || model.g_base_mviews(i) || ''_MV'' );',
+'            p_message => ''Refreshing '' || l_base_mviews(i) || ''_MV'' );',
 '',
-'        model.create_or_refresh_mview( model.g_base_mviews(i), ''SYS'' );',
+'        model.create_or_refresh_mview( l_base_mviews(i), ''SYS'' );',
 '',
 '        apex_background_process.set_progress(',
 '            p_totalwork => l_totalwork,',
@@ -45806,29 +45857,29 @@ wwv_flow_imp_shared.append_to_install_script(
 '-- check for errors in package model_joel',
 'declare',
 '  l_count pls_integer;',
+'  l_name  varchar2(30) := ''MODEL_JOEL'';',
 'begin',
 '  select count(*)',
 '    into l_count',
 '    from user_errors',
-'   where name = ''MODEL_JOEL'';',
+'   where name = l_name;',
 '  if l_count > 0 then',
-'    dbms_output.put_line(''- Package MODEL_JOEL has errors :-('');',
+'    dbms_output.put_line(''- Package '' || l_name || '' has errors :-('');',
+'    for i in (',
+'        select name || case when type like ''%BODY'' then '' body'' end || '', '' ||',
+'               ''line '' || line || '', '' ||',
+'               ''column '' || position || '', '' ||',
+'               attribute  || '': '' ||',
+'               text as message',
+'          from user_errors',
+'         where name = l_name',
+'         order by name, line, position )',
+'    loop',
+'        dbms_output.put_line(''- '' || i.message);',
+'    end loop;',
 '  end if;',
 'end;',
 '/',
-'',
-'column "Name"      format a15',
-'column "Line,Col"  format a10',
-'column "Type"      format a10',
-'column "Message"   format a80',
-'',
-'select name || case when type like ''%BODY'' then '' body'' end as "Name",',
-'       line || '','' || position as "Line,Col",',
-'       attribute               as "Type",',
-'       text                    as "Message"',
-'  from user_errors',
-' where name = ''MODEL_JOEL''',
-' order by name, line, position;',
 '',
 '',
 'prompt - FINISHED',
@@ -45839,7 +45890,17 @@ end;
 /
 prompt --application/deployment/checks
 begin
-null;
+wwv_flow_imp_shared.create_install_check(
+ p_id=>wwv_flow_imp.id(719581338697422)
+,p_install_id=>wwv_flow_imp.id(34415770414540681621)
+,p_name=>'Do not install on apex.oracle.com'
+,p_sequence=>10
+,p_check_type=>'EXPRESSION'
+,p_check_condition=>'apex_util.host_url not like ''%apex.oracle.com%'''
+,p_check_condition2=>'PLSQL'
+,p_condition_type=>'ALWAYS'
+,p_failure_message=>'Sorry, the app Data Model Explorer cannot run on apex.oracle.com. You will not be able to install the needed supporting objects. Please install the app on a different host to try it out.'
+);
 end;
 /
 prompt --application/deployment/buildoptions
