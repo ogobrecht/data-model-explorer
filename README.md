@@ -28,7 +28,7 @@ New in an Oracle project? Visually explore unknown data models with an APEX app!
 
 - Clone or download the project and install the application (data-model-explorer.sql)
 - Installing the supporting objects will take some time (usually between 20 and 120 seconds, depending on the speed of your system)
-- When the app is running and you want to have a look in the meta data of the generated materialized views itself, you need to refresh them once (there is an automation running every day which does the refresh also): Settings > Meterialized Views > Refresh Now
+- When the app is running and you want to have a look in the meta data of the generated materialized views itself, you need to refresh them once (there is an automation running every day which does the refresh also): Settings > Materialized Views > Refresh Now
 - If you have done data model changes and want them to be recognized by the Data Model Explorer you need also to refresh the materialized views
 
 ## License
